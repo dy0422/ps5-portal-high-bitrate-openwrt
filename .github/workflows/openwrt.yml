@@ -31,6 +31,7 @@ jobs:
           sh -n openwrt/files/portal-bitrate
           sh -n openwrt/files/portal-bitrate.init
           sh -n openwrt/tests/netns-smoke.sh
+          node --check openwrt/luci/htdocs/luci-static/resources/view/portal-bitrate/settings.js
       - name: Build installable preview
         run: python openwrt/build.py
       - uses: actions/upload-artifact@v4

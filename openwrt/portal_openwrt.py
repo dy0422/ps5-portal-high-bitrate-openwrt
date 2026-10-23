@@ -294,7 +294,6 @@ def supervise(settings, mode, seconds=None):
     # Old restore data must never be used to repair a newly configured peer pair.
     for name in ('restore-state.json', 'status.json', 'recovery.json', 'engine-pid', 'disabled'):
         (RUNTIME / name).unlink(missing_ok=True)
-    setup(settings)
     child = None
     interrupted = False
 
@@ -306,6 +305,7 @@ def supervise(settings, mode, seconds=None):
 
     old = {sig: signal.signal(sig, stop) for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP)}
     try:
+        setup(settings)
         argv = ['ip', 'netns', 'exec', NS, sys.executable, '-u', str(APP / 'portal_auto.py'),
                 mode, '--config', str(PERSIST / 'auto-config.json'), '--runtime', str(RUNTIME)]
         if seconds is not None:
@@ -320,7 +320,11 @@ def supervise(settings, mode, seconds=None):
         while pids() and time.monotonic() < deadline:
             time.sleep(.25)
         repair_existing()
-        if mode == 'baseline' and rc == 0:
+        if mode == 'baseline' and interrupted:
+            (PERSIST / 'baseline.json').unlink(missing_ok=True)
+            (RUNTIME / 'auto-baseline.json').unlink(missing_ok=True)
+            print('Baseline cancelled; no baseline receipt saved.', flush=True)
+        if mode == 'baseline' and rc == 0 and not interrupted:
             import portal_auto as engine
             config = engine.config(PERSIST / 'auto-config.json')
             if not engine.baseline_valid(config, RUNTIME):
@@ -330,10 +334,12 @@ def supervise(settings, mode, seconds=None):
             print('Baseline saved. Check picture/controls, then run: portal-bitrate try', flush=True)
         return rc
     finally:
-        for sig, handler in old.items():
-            signal.signal(sig, handler)
-        if owned() and not pids() and not (RUNTIME / 'recovery-required').exists():
-            repair_existing()
+        try:
+            if owned() and not pids() and not (RUNTIME / 'recovery-required').exists():
+                repair_existing()
+        finally:
+            for sig, handler in old.items():
+                signal.signal(sig, handler)
 
 
 def configure(settings):

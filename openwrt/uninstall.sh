@@ -15,5 +15,11 @@ fi
 [ ! -e /var/run/netns/portal-bitrate ] || { echo 'Recovery namespace remains. Files retained.' >&2; exit 1; }
 rm -f /usr/sbin/portal-bitrate /etc/init.d/portal-bitrate
 rm -rf /usr/lib/portal-bitrate
+rm -f /usr/libexec/rpcd/portal-bitrate
+rm -f /usr/share/rpcd/acl.d/luci-app-portal-bitrate.json
+rm -f /usr/share/luci/menu.d/luci-app-portal-bitrate.json
+rm -f /www/luci-static/resources/view/portal-bitrate/settings.js
+rm -f /tmp/luci-indexcache*
+if /etc/init.d/rpcd running >/dev/null 2>&1; then /etc/init.d/rpcd reload; fi
 echo 'Removed. Configuration/enrollment retained in /etc/config/portal_bitrate and /etc/portal-bitrate.'
 echo 'Distribution dependencies retained for other packages.'

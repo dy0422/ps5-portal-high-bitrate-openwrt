@@ -189,6 +189,29 @@ class PortTests(unittest.TestCase):
         child.send_signal.assert_called_once_with(signal.SIGTERM)
         repair.assert_called_once()
 
+    def test_cancelled_baseline_does_not_save_a_success_receipt(self):
+        child = MagicMock(pid=123)
+        child.poll.return_value = None
+        child.wait.side_effect = lambda: signal.getsignal(signal.SIGTERM)(signal.SIGTERM, None) or 0
+        (port.PERSIST / 'baseline.json').write_text('{}')
+        (port.RUNTIME / 'auto-baseline.json').write_text('{}')
+        with patch.object(port, 'setup'), patch.object(port.subprocess, 'Popen', return_value=child):
+            with patch.object(port, 'pids', return_value=[]), patch.object(port, 'owned', return_value=False):
+                with patch.object(port, 'repair_existing'):
+                    self.assertEqual(port.supervise(self.settings, 'baseline'), 0)
+        self.assertFalse((port.PERSIST / 'baseline.json').exists())
+        self.assertFalse((port.RUNTIME / 'auto-baseline.json').exists())
+
+    def test_stop_during_setup_waits_for_setup_then_cleans_up(self):
+        def interrupt(_settings):
+            signal.getsignal(signal.SIGTERM)(signal.SIGTERM, None)
+        with patch.object(port, 'setup', side_effect=interrupt), patch.object(port.subprocess, 'Popen') as spawn:
+            with patch.object(port, 'owned', return_value=True), patch.object(port, 'pids', return_value=[]):
+                with patch.object(port, 'repair_existing') as repair:
+                    self.assertEqual(port.supervise(self.settings, 'baseline'), 0)
+        spawn.assert_not_called()
+        repair.assert_called_once()
+
 
 class PackageTests(unittest.TestCase):
     def test_package_and_bundle_integrity(self):
@@ -205,6 +228,10 @@ class PackageTests(unittest.TestCase):
                     names = data.getnames()
                     self.assertIn('./usr/lib/portal-bitrate/portal_auto.py', names)
                     self.assertIn('./usr/lib/portal-bitrate/portal_openwrt.py', names)
+                    self.assertIn('./usr/lib/portal-bitrate/portal_luci.py', names)
+                    self.assertIn('./www/luci-static/resources/view/portal-bitrate/settings.js', names)
+                    self.assertEqual(data.getmember('./www/luci-static/resources/view/portal-bitrate/settings.js').mode, 0o644)
+                    self.assertEqual(data.getmember('./usr/libexec/rpcd/portal-bitrate').mode, 0o755)
                     self.assertEqual(data.getmember('./usr/lib/portal-bitrate').mode, 0o700)
                     self.assertEqual(data.getmember('./etc/config/portal_bitrate').mode, 0o600)
                     self.assertIn(b"option enabled '0'", data.extractfile('./etc/config/portal_bitrate').read())

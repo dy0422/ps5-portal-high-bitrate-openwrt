@@ -1,0 +1,14 @@
+{
+  "admin/services/portal-bitrate": {
+    "title": "PS Portal 提码率",
+    "order": 65,
+    "action": {
+      "type": "view",
+      "path": "portal-bitrate/settings"
+    },
+    "depends": {
+      "acl": ["luci-app-portal-bitrate"],
+      "uci": {"portal_bitrate": true}
+    }
+  }
+}

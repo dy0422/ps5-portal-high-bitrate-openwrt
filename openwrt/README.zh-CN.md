@@ -24,26 +24,26 @@ PS5 建议有线连接。保留原来的主路由/旁路由角色即可，但该
 
 ### 使用 opkg 的 OpenWrt：直接安装 IPK
 
-上传 `portal-bitrate_0.1.0-1_all.ipk` 到路由器 `/tmp`，然后：
+上传 `portal-bitrate_0.2.0-1_all.ipk` 到路由器 `/tmp`，然后：
 
 ```sh
 opkg update
-opkg install /tmp/portal-bitrate_0.1.0-1_all.ipk
+opkg install /tmp/portal-bitrate_0.2.0-1_all.ipk
 portal-bitrate doctor
 ```
 
-也可以在 LuCI → 系统 → 软件包中上传 IPK。安装包不附带 LuCI 配置页面，配置通过下面的命令完成。
+也可以在 LuCI → 系统 → 软件包中上传 IPK。安装后刷新或重新登录，进入 **服务 → PS Portal 提码率**。
 `all` 表示程序是 Python/脚本，无架构相关二进制；内核模块和依赖由路由器自己的软件源提供。
-依赖为 `python3 scapy ip-full kmod-veth libpcap`。必须使用与当前固件内核匹配的软件源，不能强制安装其他固件的 kmod。
+依赖为 `python3 scapy ip-full kmod-veth libpcap luci rpcd`。必须使用与当前固件内核匹配的软件源，不能强制安装其他固件的 kmod。
 `ip-full` 通常与 `ip-tiny` 并存，由系统 alternatives 选择完整版。
 
 ### 使用 apk 的新版 OpenWrt，或希望通过脚本安装
 
-上传 `portal-bitrate-openwrt-0.1.0-1.tar.gz` 到 `/tmp`：
+上传 `portal-bitrate-openwrt-0.2.0-1.tar.gz` 到 `/tmp`：
 
 ```sh
 cd /tmp
-tar xzf portal-bitrate-openwrt-0.1.0-1.tar.gz
+tar xzf portal-bitrate-openwrt-0.2.0-1.tar.gz
 cd portal-bitrate-openwrt
 sh install.sh
 portal-bitrate doctor
@@ -52,9 +52,25 @@ portal-bitrate doctor
 脚本自动选择 `opkg` 或 `apk`，从当前固件软件源安装依赖并校验包内文件，然后复制程序。
 脚本安装的程序不登记到 apk 数据库，使用同一目录里的 `uninstall.sh` 卸载。
 没有可用的软件源、NET_NS 或 veth 支持时会失败，不会修改主系统转发/防火墙来绕过问题。
-IPK 安装与脚本安装二选一；已有安装时会拒绝覆盖。升级前停止并卸载旧版，配置/配对信息保留，升级后重新做 baseline。
+IPK 安装与脚本安装二选一。IPK 支持从本项目旧版本升级：先停止并恢复网络，保留配置，升级后默认停用并需要重做连接测试。脚本安装升级需先停止并卸载旧版，保留配置/配对信息。
 
-## 配置和第一次测试
+## 网页设置（推荐）
+
+安装后打开路由器 LuCI，进入 **服务 → PS Portal 提码率**。
+
+1. 在“设置并检测设备”中选择 LAN 网桥，填写中继独立地址、PS5 地址和 Portal 地址，选择 65 Mbps，点击“保存并检测设备”。两台设备需保持开机。
+2. 设备检测完成后，先断开 Portal 串流，点击“连接测试（60 秒）”。等日志出现 `BASELINE READY` 再连接，检查画面和按键；页面持续显示进度。
+3. 测试完成后点击“试运行（90 秒）”，等 `AUTO READY` 后重新连接。检查效果，90 秒后会自动停止并恢复网络；也可以随时点“停止”。
+4. 确认效果后点击“启动服务”，每次新连接都会自动应用码率设置。可勾选“随路由器开机启动”，此选项在启动时保存。
+
+“停止”会结束当前测试或停止服务，并等待恢复；不会更改已保存的开机启动偏好。
+“环境检查”提供诊断日志；异常恢复可先点击“停止”，再点击“恢复网络”。
+修改设备地址或码率前请先停止服务。中断的连接测试不会保存为成功记录。
+
+页面通过 LuCI 登录权限访问，仅提供本工具的指定操作，不开放任意命令或文件访问。
+60/90 秒操作在后台运行，刷新页面后仍可查看进度；关闭页面不会停止正在进行的测试或服务。
+
+## 命令行配置和第一次测试（可选）
 
 先给 PS5、Portal 设置 DHCP 静态租约，再给中继预留一个**不在 DHCP 动态分配范围内、且未被其他设备使用**的 IPv4 地址。
 程序会做 ARP 冲突探测，但离线设备无法回应，所以仍需核对 DHCP 配置。
@@ -158,8 +174,9 @@ opkg remove portal-bitrate
 
 已在官方 `openwrt/rootfs:x86-64-24.10.5` 隔离容器中验证：
 
-- 官方软件源的 Python 3.11.16 / Scapy 2.5.0：37 项上游测试、15 项移植/打包测试通过。
-- IPK 的 opkg 安装、procd 服务注册/启动/停止，以及卸载清理。
+- 官方软件源的 Python 3.11.16 / Scapy 2.5.0：37 项上游测试和移植/打包/RPC 接口测试通过，具体数量见发布说明。
+- IPK 的 opkg 安装、0.1.0 到 0.2.0 升级、procd 服务注册/启动/停止，以及卸载清理。
+- Chromium 中真实 LuCI 页面的地址校验、配对、60 秒测试、测试取消、试运行、服务和开机启动、日志、未登录拒绝及手机布局。
 - 真实 veth/netns 和 UDP 通信：60 秒未修改基线、修改握手并送达模拟 PS5、返回数据直达模拟 Portal。
 - SIGTERM 停止、SIGKILL 终止中继后的 guardian/ARP 恢复，以及路由器转发始终保持开启。
 

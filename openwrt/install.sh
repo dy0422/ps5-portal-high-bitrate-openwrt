@@ -19,13 +19,13 @@ if [ "${1:-}" = '--remove' ]; then
 	fail 'For removal use: sh uninstall.sh'
 fi
 
-echo 'Installing distribution packages: python3 scapy ip-full kmod-veth libpcap'
+echo 'Installing distribution packages: python3 scapy ip-full kmod-veth libpcap luci rpcd'
 if command -v apk >/dev/null 2>&1; then
 	apk update
-	apk add python3 scapy ip-full kmod-veth libpcap
+	apk add python3 scapy ip-full kmod-veth libpcap luci rpcd
 elif command -v opkg >/dev/null 2>&1; then
 	opkg update
-	opkg install python3 scapy ip-full kmod-veth libpcap
+	opkg install python3 scapy ip-full kmod-veth libpcap luci rpcd
 else
 	fail 'No supported OpenWrt package manager (opkg/apk) found.'
 fi
@@ -49,6 +49,12 @@ chmod 600 "$APP"/*
 cp "$HERE/files/portal-bitrate" /usr/sbin/portal-bitrate
 cp "$HERE/files/portal-bitrate.init" /etc/init.d/portal-bitrate
 chmod 755 /usr/sbin/portal-bitrate /etc/init.d/portal-bitrate
+(
+	umask 022
+	cp -R "$HERE/luci/root/." /
+	cp -R "$HERE/luci/htdocs/." /www/
+)
+chmod 755 /usr/libexec/rpcd/portal-bitrate
 if [ ! -e /etc/config/portal_bitrate ]; then
 	cp "$HERE/files/portal_bitrate" /etc/config/portal_bitrate
 fi
@@ -56,4 +62,6 @@ chmod 600 /etc/config/portal_bitrate
 uci set portal_bitrate.main.enabled=0
 uci commit portal_bitrate
 /etc/init.d/portal-bitrate disable
-echo 'Installed, service disabled. Read README.zh-CN.md, then: portal-bitrate doctor'
+rm -f /tmp/luci-indexcache*
+if /etc/init.d/rpcd running >/dev/null 2>&1; then /etc/init.d/rpcd reload; fi
+echo 'Installed, service disabled. Open LuCI: Services -> PS Portal bitrate.'

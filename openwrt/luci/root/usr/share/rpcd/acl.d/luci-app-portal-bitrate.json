@@ -1,0 +1,15 @@
+{
+  "luci-app-portal-bitrate": {
+    "description": "Configure and operate the PS Portal bitrate relay",
+    "read": {
+      "ubus": {
+        "portal-bitrate": ["status"]
+      }
+    },
+    "write": {
+      "ubus": {
+        "portal-bitrate": ["configure", "baseline", "trial", "start", "stop", "repair", "doctor"]
+      }
+    }
+  }
+}
