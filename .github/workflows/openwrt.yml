@@ -1,0 +1,44 @@
+name: OpenWrt package
+
+on:
+  push:
+    paths: ['openwrt/**', '*.py', 'tests/**', 'requirements.txt', '.github/workflows/openwrt.yml']
+  pull_request:
+    paths: ['openwrt/**', '*.py', 'tests/**', 'requirements.txt', '.github/workflows/openwrt.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python dependency
+        run: python -m pip install -r requirements.txt
+      - name: Protocol and supervisor tests
+        run: |
+          python -m unittest discover -s tests -v
+          python -m unittest discover -s openwrt/tests -v
+      - name: Shell syntax
+        run: |
+          sh -n openwrt/install.sh
+          sh -n openwrt/uninstall.sh
+          sh -n openwrt/files/portal-bitrate
+          sh -n openwrt/files/portal-bitrate.init
+          sh -n openwrt/tests/netns-smoke.sh
+      - name: Build installable preview
+        run: python openwrt/build.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portal-bitrate-openwrt
+          path: |
+            release-assets/*.ipk
+            release-assets/*.tar.gz
+            release-assets/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30

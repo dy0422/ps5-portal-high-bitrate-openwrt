@@ -1,5 +1,25 @@
 # PS5 Portal High Bitrate
 
+## OpenWrt port — experimental preview
+
+This version includes an independently maintained OpenWrt port for x86/x86_64 routers.
+It runs the upstream relay in an isolated network namespace attached to the LAN bridge,
+preserving the router's existing forwarding and firewall configuration. Docker is not required.
+
+- [中文安装、配置和恢复说明](openwrt/README.zh-CN.md)
+- Build the IPK and portable installer: `python3 openwrt/build.py`
+- [OpenWrt release notes and validation limits](openwrt/RELEASE.md)
+
+The service is disabled on installation. Complete configuration, the unchanged baseline,
+and a foreground trial before enabling it. Tests cover an official OpenWrt 24.10.5 rootfs
+container with simulated peers; a real OpenWrt router and PS5/Portal remain unverified.
+
+The original protocol implementation and MIT license are retained from
+[atameric/ps5-portal-high-bitrate](https://github.com/atameric/ps5-portal-high-bitrate).
+The original project's documentation follows below.
+
+---
+
 ## Update — October 21, 2026
 
 The Raspberry Pi 4 Model B setup is now working on my own system! With my Mac switched off, I tested smooth gameplay through the Ethernet-connected Pi using the 100 Mbps profile. I also successfully tested automatic startup and a fresh Portal connection after rebooting the Pi. The code and setup instructions are on GitHub.

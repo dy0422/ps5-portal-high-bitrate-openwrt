@@ -1,0 +1,7 @@
+config relay 'main'
+	option enabled '0'
+	option bridge 'br-lan'
+	option address ''
+	option ps5_ip ''
+	option portal_ip ''
+	option profile '65'
