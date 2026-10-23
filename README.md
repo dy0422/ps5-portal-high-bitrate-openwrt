@@ -9,6 +9,7 @@ It runs the upstream relay in an isolated network namespace attached to the LAN 
 preserving the router's existing forwarding and firewall configuration. Docker is not required.
 
 - [中文安装、配置和恢复说明](openwrt/README.zh-CN.md)
+- [下载安装包 v0.2.0（含 LuCI 设置界面）](packages/v0.2.0/README.md)
 - Build the IPK and portable installer: `python3 openwrt/build.py`
 - [OpenWrt release notes and validation limits](openwrt/RELEASE.md)
 
